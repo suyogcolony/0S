@@ -1,0 +1,355 @@
+slip20_1
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <malloc.h>
+
+char comm[80],*args[5];
+
+void get_comm()
+{
+	int len;
+	
+	fgets(comm,80,stdin);
+	len = strlen(comm);
+	comm[len-1] = '\0';
+}
+
+void sep_args()
+{
+	int i,j=0,t=0;
+	
+	args[t] = (char*) malloc(sizeof(char)*20);
+	
+	for(i=0;comm[i]!='\0';i++)
+	{
+		if(comm[i]==' ')
+		{
+			args[t][j]='\0';
+			t++;
+			j=0;
+			args[t] = (char*) malloc(sizeof(char)*20);
+		}
+		else
+		{
+			args[t][j] = comm[i];
+			j++;
+		}
+	}
+	args[t][j]='\0';
+}
+
+void typeline(char op[], char fname[])
+{
+	FILE *fp;
+	int tot_lines=0,ch,n,cnt;
+	
+	fp= fopen(fname,"r");
+	
+	if( fp == NULL )
+	{
+		printf("\n Unable to open file");
+	}
+	else
+	{
+		while (ch != EOF)
+		{
+			ch = fgetc(fp);
+			
+			if(ch == '\n') 
+				tot_lines++;
+		}
+		fclose(fp);
+		
+		ch=' ';
+		
+		if(op[0]=='a') 
+		{
+			fp = fopen(fname,"r");
+			
+			while (ch != EOF)
+			{
+				ch = fgetc(fp);
+				printf("%c",ch);
+			}
+			fclose(fp);
+		}
+		else if(op[0] == '+') 
+		{
+			//n = atoi(option[1]);
+			n=5;
+			if(n > tot_lines)
+			{	
+				printf("\n Invalid  option");
+			}
+			else
+			{
+				fp= fopen(fname,"r");
+				cnt = 0;
+				while( cnt < n )
+				{
+					ch = fgetc(fp);
+					printf("%c",ch);
+					if(ch == '\n')
+						cnt++;
+				}
+				fclose(fp);
+			}
+		}
+		else if(op[0] =='-') 
+		{
+			//n = atoi(option[1]);
+			n=5;
+			if(n > tot_lines)
+			{	
+				printf("\n Invalid option");
+			}
+			else
+			{
+				fp= fopen(fname,"r");
+				cnt = 0;
+				while(cnt < tot_lines-n)
+				{
+					ch = fgetc(fp);
+					if(ch == '\n')
+						cnt++;
+				}
+				while( (ch=fgetc(fp)) != EOF )
+				{
+					printf("%c",ch);	
+				}
+				fclose(fp);
+			}
+		}
+		else
+		{
+			printf("\n Invalid option");
+		}
+	}
+}
+
+void take_action()
+{
+	if(strcmp(args[0],"typeline")==0)
+	{
+		typeline(args[1],args[2]);
+	}
+	else if(strcmp(args[0],"quit")==0)
+	{
+		exit(0);
+	}
+	else
+	{
+		printf("\n %s: Command not found",args[0]);
+	}
+}
+
+int main()
+{
+	while(1)
+	{
+		printf("\n myshell$ ");
+		get_comm();
+		sep_args();
+		take_action();
+	}
+
+	return 0;
+}
+
+
+slip20_2
+
+include <stdio.h>
+#include <stdlib.h>
+
+struct proc_info
+{
+  int atime;
+  int cpub;
+} proc[20];
+
+struct rqnode
+ { int pid,cpub;
+   struct rqnode *link;
+ } *first=NULL, *curr, *prev, *last;
+
+struct ganttchart
+{
+  int stime;
+  int pid;
+  int etime;
+} gchart[20];
+
+int i,n,ctime,gi=0,wtime[20],ttime[20];
+
+void getprocs();
+void start();
+void addprocq();
+void attachtoq(int );
+void addgchart(int);
+void dispgchart();
+void disptimes();
+int finished();
+int getfirstproc();
+
+main()
+{ 
+  getprocs();
+  ctime=0; //set current time to 0
+  start();
+  dispgchart();
+  disptimes();
+}
+
+void getprocs()
+{ printf("\nHow many processes: "); scanf("%d",&n);
+  printf("\nPID\tATIME\tCPUB\n");
+  for (i=1; i<=n; i++)
+  { printf("%d\t",i);
+    scanf("%d%d",&proc[i].atime,&proc[i].cpub);
+   }
+}//get_proc
+
+void start()
+{ int pid;
+  addprocq(); //add procs in rq arrived at ctime
+  pid=getfirstproc();//get short process
+  while(!finished()) //while not finished all processes
+  {
+
+    if(pid!=-1)
+    { //execute process pid
+      ctime++;  //increment current time
+      proc[pid].cpub--;
+      if(proc[pid].cpub==0)//proc finished
+      {
+	printf("\nProc %d completed at time %d..",pid,ctime);
+	ttime[pid]=ctime-proc[pid].atime;
+
+	pid=getfirstproc();//get short process
+      }//if
+    }//if
+   else
+    ctime++;//no process in rq
+
+   addprocq(); //add procs in rq arrived at ctime
+  }//while
+  gchart[gi].etime=ctime;
+}//start
+
+void addprocq()
+{
+  for(i=1;i<=n;i++)
+  { if(proc[i].atime==ctime)
+      attachtoq(i);
+   }//for
+}//addprocq
+
+void attachtoq(int pid)
+{
+  struct rqnode *selp,*pselp;
+   curr=(struct rqnode *)malloc(sizeof(struct rqnode));
+   curr->pid=pid;curr->cpub=proc[pid].cpub; curr->link=NULL;
+   if(first==NULL)
+   { first=curr;
+     return;
+    }
+   selp=first;
+   while(selp->cpub<=curr->cpub && selp!=NULL)
+   { pselp=selp;
+     selp=selp->link;
+   }
+   if(selp==first)
+   { curr->link=first;
+     first=curr;
+   }
+   else
+   { pselp->link=curr;
+     curr->link=selp;
+    }
+}
+
+int finished() //check all proc finished cpub
+{
+  for(i=1;i<=n;i++)
+  { if(proc[i].cpub!=0)
+     return(0);
+  }
+  return(1);
+}
+
+
+int getfirstproc()
+{
+  int pid;
+  if(first==NULL)
+    return(-1);
+  pid=first->pid;
+  curr=first; //remove from rq
+  first=first->link;
+  free(curr);
+  addgchart(pid);
+  wtime[pid]=ctime-proc[pid].atime;
+  return(pid);
+
+}//getfirstproc
+
+
+void addgchart(int pid)
+{
+   gchart[++gi].pid=pid;
+   gchart[gi].stime=ctime;
+   gchart[gi-1].etime=gchart[gi].stime;
+
+}
+
+void dispgchart()
+{ printf("\n");
+
+  for(i=1;i<=gi;i++)
+    printf("|----");
+  printf("|\n");
+
+  for(i=1;i<=gi;i++)
+    printf("| %d  ",gchart[i].pid);
+  printf("|\n");
+
+  for(i=1;i<=gi;i++)
+    printf("|----");
+  printf("|\n");
+
+  for(i=1;i<=gi;i++)
+   printf("%d    ",gchart[i].stime);
+
+  printf("%d\n",gchart[gi].etime);
+  //getch();
+
+}
+
+void disptimes()
+{ int sumwt=0,sumtt=0,pid;
+
+  printf("\n**Waiting Time**");
+  printf("\nPID\tWtime");
+  for(i=1;i<=n;i++)
+  {
+    printf("\n%d\t%d",i,wtime[i]);
+    sumwt+=wtime[i];
+  }
+  printf("\nAverage:%.2f",(float)sumwt/n);
+
+  printf("\n**Turnaround Time**");
+  printf("\nPID\t ttime");
+  for(i=1;i<=n;i++)
+  {
+    printf("\n%d\t%d",i,ttime[i]);
+    sumtt+=ttime[i];
+  }
+  printf("\nAverage:%.2f",(float)sumtt/n);
+
+  //getch();
+}
+
+

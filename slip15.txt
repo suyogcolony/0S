@@ -1,0 +1,270 @@
+slip15_1
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <dirent.h>
+
+char comm[80],*args[5];
+
+void get_comm()
+{
+	int len;
+	
+	fgets(comm,80,stdin);
+	len = strlen(comm);
+	comm[len-1] = '\0';
+}
+
+void sep_args()
+{
+	int i,j=0,t=0;
+	
+	args[t] = (char*) malloc(sizeof(char)*20);
+	
+	for(i=0;comm[i]!='\0';i++)
+	{
+		if(comm[i]==' ')
+		{
+			args[t][j]='\0';
+			t++;
+			j=0;
+			args[t] = (char*) malloc(sizeof(char)*20);
+		}
+		else
+		{
+			args[t][j] = comm[i];
+			j++;
+		}
+	}
+}
+
+void list( char option, char dirname[])
+{
+	DIR *dp;
+	struct dirent *dent;
+	int cnt=0;
+	
+	switch(option)
+	{
+		case 'f' : // list all dir entries
+				dp= opendir(".");
+				if( dp == NULL )
+				{
+					printf("\n Unable to open dir");
+					return;
+				}
+	
+				while( dent = readdir(dp) )
+				{
+					printf("\n %s",dent->d_name);
+				}
+				break;
+				
+		case 'n' : // list number all dir entries
+				cnt =0;
+				dp= opendir(".");
+				if( dp == NULL )
+				{
+					printf("\n Unable to open dir");
+					return;
+				}
+				while( dent = readdir(dp) )
+				{
+					cnt++;
+				}
+				printf("\n Total dir entries = %d",cnt);
+				closedir(dp);
+				break;
+		case 'i' : // list all dir entries with inode
+				dp= opendir(".");
+				if( dp == NULL )
+				{
+					printf("\n Unable to open dir");
+					return;
+				}
+	
+				while(dent = readdir(dp))
+				{
+					printf("\n %s %ld",dent->d_name,dent->d_ino);
+				}
+				closedir(dp);
+				break;
+		default :	printf("\n Invalid option");
+	} 
+}
+
+void take_action()
+{
+	if(strcmp(args[0],"list")==0)
+	{
+		list(args[1][0],args[2]);
+	}
+	else if(strcmp(args[0],"quit")==0)
+	{
+		exit(0);
+	}
+	else
+	{
+		printf("\n %s: Command not found",args[0]);
+	}
+}
+
+int main()
+{
+	while(1)
+	{
+		printf("MyShell$ ");
+		get_comm();
+		sep_args();
+		take_action();
+	}
+}
+
+
+slip15_2
+
+include <stdio.h>
+
+#include <stdlib.h>
+#include <time.h>
+
+struct process_info
+ {
+  int atime;
+  int cpub;
+ }proc[10];
+
+struct gantt_chart
+ {
+  int procno;
+  int stime;
+  int etime;
+ }gchart[30];
+
+int i, n, currtime=0, gindex,p, ttime[10], wtime[10], prevp=-1;
+void get_process_input();
+find_proc_toexec();
+void print_gantt_chart();
+finished_procs();
+void print_times();
+void gen_next_cpub();
+void cpub_exec_proc(int p);
+
+void main()
+ {
+  int etime;
+
+  get_process_input();
+  while (!finished_procs())
+   {
+    p=find_proc_toexec();
+    if (p!=-1)
+      cpub_exec_proc(p);
+    else
+      currtime++;
+   }
+  gchart[gindex++].etime=currtime;
+  printf("After Excecution of CPU burst:\n");
+  print_gantt_chart();
+  print_times();
+
+
+ }
+
+void get_process_input()
+ {
+  int pno;
+  printf("\nHow many processes : ");
+  scanf("%d",&n);
+  printf("Proc   Arrival    CPU   \n");
+  printf("No.    Time      Burst        \n");
+  pno=0;
+  for(i=0; i<n; i++)
+   {
+    printf("\n%d",pno++);
+    scanf("%d%d",&proc[i].atime,&proc[i].cpub);
+   }
+ }
+
+find_proc_toexec()
+ {
+  int mincpub=11, selproc=-1;
+  for (i=0; i<n; i++)
+   {
+    if(proc[i].cpub!=0 && proc[i].atime<=currtime && proc[i].cpub<mincpub)
+     {
+      mincpub=proc[i].cpub;
+      selproc=i;
+     }
+   }
+  return selproc;
+ }
+
+void cpub_exec_proc(int p)
+ {
+  if(prevp!=p)
+   {
+    if(prevp!=-1) gchart[gindex++].etime=currtime;
+      wtime[p]+=(currtime-getetime(p));
+    gchart[gindex].procno=p;
+    gchart[gindex].stime=currtime;
+    prevp=p;
+   }
+  currtime++;
+  proc[p].cpub-=1;
+  ttime[p]=ttime[p]+1;
+  if(proc[p].cpub==0)
+   {
+    proc[p].atime=currtime+2;
+    ttime[p]+=wtime[p];
+   }
+ }
+
+finished_procs()
+ {
+  for(i=0; i<n; i++)
+   if(proc[i].cpub!=0)
+     return (0);
+  return (1);
+ }
+
+
+
+getetime(int p)
+ {
+  for(i=gindex-1; i>0; i--)
+   if (gchart[i].procno==p)
+     return(gchart[i].etime);
+  return proc[p].atime;
+ }
+
+void print_gantt_chart()
+ {
+  printf("\n|----|----|----|----|----|----|----|----|----------\n");
+  printf("|");
+  for(i=0; i<gindex; i++)
+    printf(" %d  |",gchart[i].procno);
+  printf("\n|----|----|----|----|----|----|----|----|------------\n");
+  printf("%d",gchart[0].stime);
+  for(i=0; i<gindex; i++)
+    printf("%5d",gchart[i].etime);
+ }
+
+void print_times()
+ {
+  int totwtime=0,totttime=0;
+  printf("\nProc   Waiting   TurnAround\n");
+  printf("No.    Time      Time       \n");
+  for(i=0; i<n; i++)
+   {
+    printf("%d\t%d\t%d\n",i,wtime[i],ttime[i]);
+    totwtime+=wtime[i];
+    totttime+=ttime[i];
+   }
+  printf("\nAverage Waiting Time = %.2f",(float)totwtime/n);
+  printf("\nAverage Turnaround Time = %.2f",(float)totttime/n);
+ }
+
+
